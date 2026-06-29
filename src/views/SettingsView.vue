@@ -2,6 +2,7 @@
 import { ref, reactive } from 'vue'
 import { user, updateUser, logout } from '../stores/auth.js'
 import { useRouter } from 'vue-router'
+import { authSettingsApi } from '../api/client'
 
 const router = useRouter()
 
@@ -12,15 +13,23 @@ const profile = reactive({
 })
 const profileSaved  = ref(false)
 const profileSaving = ref(false)
+const profileError  = ref('')
 
-function saveProfile() {
+async function saveProfile() {
+  profileError.value = ''
   profileSaving.value = true
-  setTimeout(() => {
-    updateUser({ name: profile.name, email: profile.email })
+  try {
+    const res = await authSettingsApi.updateProfile(profile.name, profile.email)
+    if (res.ok) {
+      updateUser(res.user)
+      profileSaved.value  = true
+      setTimeout(() => profileSaved.value = false, 2500)
+    }
+  } catch (err) {
+    profileError.value = err.message || 'Failed to save profile'
+  } finally {
     profileSaving.value = false
-    profileSaved.value  = true
-    setTimeout(() => profileSaved.value = false, 2500)
-  }, 500)
+  }
 }
 
 // ── API Connection ───────────────────────────────────────────────────────────
@@ -35,14 +44,23 @@ function saveApiUrl() {
   setTimeout(() => apiSaved.value = false, 2500)
 }
 
-function testConnection() {
+async function testConnection() {
   apiTesting.value = true
   apiStatus.value  = null
-  setTimeout(() => {
-    // Mock: succeed if URL looks valid
-    apiStatus.value  = apiUrl.value.startsWith('http') ? 'ok' : 'error'
+  try {
+    const cleanUrl = apiUrl.value.replace(/\/$/, '')
+    const res = await fetch(`${cleanUrl}/api/health`)
+    const data = await res.json()
+    if (res.ok && data.ok) {
+      apiStatus.value  = 'ok'
+    } else {
+      apiStatus.value  = 'error'
+    }
+  } catch (err) {
+    apiStatus.value  = 'error'
+  } finally {
     apiTesting.value = false
-  }, 1200)
+  }
 }
 
 // ── Notifications ────────────────────────────────────────────────────────────
@@ -65,18 +83,24 @@ const pw = reactive({ current: '', next: '', confirm: '' })
 const pwError  = ref('')
 const pwSaved  = ref(false)
 const pwSaving = ref(false)
-function changePassword() {
+
+async function changePassword() {
   pwError.value = ''
   if (!pw.current || !pw.next || !pw.confirm) { pwError.value = 'All fields required.'; return }
   if (pw.next.length < 6) { pwError.value = 'New password must be ≥ 6 characters.'; return }
   if (pw.next !== pw.confirm) { pwError.value = 'Passwords do not match.'; return }
+  
   pwSaving.value = true
-  setTimeout(() => {
+  try {
+    await authSettingsApi.updatePassword(pw.next)
     pw.current = pw.next = pw.confirm = ''
-    pwSaving.value = false
     pwSaved.value  = true
     setTimeout(() => pwSaved.value = false, 2500)
-  }, 600)
+  } catch (err) {
+    pwError.value = err.message || 'Failed to update password.'
+  } finally {
+    pwSaving.value = false
+  }
 }
 
 // ── Logout / Danger ──────────────────────────────────────────────────────────
@@ -105,6 +129,13 @@ function handleLogout() {
       </div>
 
       <div class="card settings-card">
+        <div v-if="profileError" class="pw-error">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          {{ profileError }}
+        </div>
+
         <!-- Avatar -->
         <div class="avatar-row">
           <div class="avatar">{{ (profile.name || profile.email || '?')[0].toUpperCase() }}</div>

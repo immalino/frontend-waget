@@ -19,8 +19,7 @@ async function handleLogin() {
   }
   loading.value = true
   try {
-    await new Promise(r => setTimeout(r, 700)) // simulate network
-    login(email.value, password.value)
+    await login(email.value, password.value)
     router.push('/')
   } catch (e) {
     error.value = e.message || 'Login failed.'
