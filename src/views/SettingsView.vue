@@ -33,7 +33,7 @@ async function saveProfile() {
 }
 
 // ── API Connection ───────────────────────────────────────────────────────────
-const apiUrl  = ref(localStorage.getItem('wa_api_url') || 'http://localhost:3000')
+const apiUrl  = ref(localStorage.getItem('wa_api_url') || import.meta.env.VITE_API_URL || 'http://localhost:3000')
 const apiSaved = ref(false)
 const apiTesting = ref(false)
 const apiStatus  = ref(null) // null | 'ok' | 'error'

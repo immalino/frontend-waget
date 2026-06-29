@@ -2,7 +2,7 @@
 // Automatically attaches Authorization header from stored JWT token.
 
 function getBase(): string {
-  return localStorage.getItem('wa_api_url') || 'http://localhost:3000'
+  return localStorage.getItem('wa_api_url') || import.meta.env.VITE_API_URL || 'http://localhost:3000'
 }
 
 function getToken(): string | null {

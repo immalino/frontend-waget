@@ -12,7 +12,7 @@ export const isAuthed = computed(() => !!_token.value && !!_user.value)
 export const token    = computed(() => _token.value)
 
 function getApiBase() {
-  return localStorage.getItem('wa_api_url') || 'http://localhost:3000'
+  return localStorage.getItem('wa_api_url') || import.meta.env.VITE_API_URL || 'http://localhost:3000'
 }
 
 export async function login(email, password) {
