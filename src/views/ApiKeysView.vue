@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { apiKeysApi, type ApiKey } from '../api/client'
 
 const keys    = ref<ApiKey[]>([])
@@ -89,6 +89,118 @@ function fmtDate(d: string | null) {
     hour: '2-digit', minute: '2-digit',
   })
 }
+
+// ── Docs ─────────────────────────────────────────────────────────────────────
+const activeTab = ref<'curl' | 'js' | 'php' | 'python'>('curl')
+const docCopied = ref(false)
+
+const apiBase = () =>
+  localStorage.getItem('wa_api_url') || import.meta.env.VITE_API_URL || 'https://your-api.example.com'
+
+const codeSnippets = computed(() => {
+  const base = apiBase()
+  const placeholder = 'wag_sk_your_api_key_here'
+  return {
+    curl:
+`# Send a text message
+curl -X POST ${base}/api/send-message \\
+  -H "Content-Type: application/json" \\
+  -H "X-API-Key: ${placeholder}" \\
+  -d '{
+    "deviceId": "your-device-id",
+    "to": "628123456789",
+    "message": "Halo dari aplikasi saya!"
+  }'
+
+# Send media (image/video) by URL
+curl -X POST ${base}/api/send-media \\
+  -H "Content-Type: application/json" \\
+  -H "X-API-Key: ${placeholder}" \\
+  -d '{
+    "deviceId": "your-device-id",
+    "to": "628123456789",
+    "mediaUrl": "https://example.com/image.jpg",
+    "caption": "Foto laporan absensi hari ini"
+  }'`,
+    js:
+`// Send a text message (JavaScript / Node.js)
+const API_KEY = '${placeholder}';
+const API_BASE = '${base}';
+
+async function sendMessage(to, message, deviceId = 'your-device-id') {
+  const res = await fetch(\`\${API_BASE}/api/send-message\`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-Key': API_KEY,
+    },
+    body: JSON.stringify({ deviceId, to, message }),
+  });
+
+  if (!res.ok) throw new Error(\`Failed: \${res.status}\`);
+  return res.json(); // { ok: true, to: '628...@s.whatsapp.net' }
+}
+
+// Usage
+await sendMessage('628123456789', 'Laporan absensi: 25 hadir, 3 izin');`,
+    php:
+`<?php
+// Send a text message (PHP)
+$apiKey  = '${placeholder}';
+$apiBase = '${base}';
+
+$payload = json_encode([
+  'deviceId' => 'your-device-id',
+  'to'       => '628123456789',
+  'message'  => 'Laporan hutang Anda: Rp 150.000 jatuh tempo hari ini.',
+]);
+
+$ch = curl_init("$apiBase/api/send-message");
+curl_setopt_array($ch, [
+  CURLOPT_RETURNTRANSFER => true,
+  CURLOPT_POST           => true,
+  CURLOPT_POSTFIELDS     => $payload,
+  CURLOPT_HTTPHEADER     => [
+    'Content-Type: application/json',
+    "X-API-Key: $apiKey",
+  ],
+]);
+
+$response = curl_exec($ch);
+curl_close($ch);
+
+$result = json_decode($response, true);
+echo $result['ok'] ? 'Pesan terkirim!' : 'Gagal: ' . $result['error'];
+?>`,
+    python:
+`import requests
+
+API_KEY  = '${placeholder}'
+API_BASE = '${base}'
+
+def send_message(to: str, message: str, device_id: str = 'your-device-id'):
+    resp = requests.post(
+        f'{API_BASE}/api/send-message',
+        headers={
+            'Content-Type': 'application/json',
+            'X-API-Key': API_KEY,
+        },
+        json={'deviceId': device_id, 'to': to, 'message': message},
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+# Usage
+result = send_message('628123456789', 'Absensi hari ini sudah dicatat ✅')
+print(result)  # {'ok': True, 'to': '628...@s.whatsapp.net'}`,
+  }
+})
+
+function copyDoc() {
+  navigator.clipboard.writeText(codeSnippets.value[activeTab.value])
+  docCopied.value = true
+  setTimeout(() => (docCopied.value = false), 2000)
+}
 </script>
 
 <template>
@@ -124,12 +236,62 @@ function fmtDate(d: string | null) {
       </button>
     </div>
 
-    <!-- ── How-to Banner ── -->
-    <div class="info-banner">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-        <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
-      </svg>
-      <p>External apps use the header <code class="inline-code">X-API-Key: wag_sk_…</code> to send messages without a login session.</p>
+    <!-- ── Documentation ── -->
+    <div class="docs-section">
+      <div class="docs-header">
+        <div class="docs-title-row">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+          </svg>
+          <span class="docs-title">Integration Guide</span>
+        </div>
+        <p class="docs-desc">Add the <code class="inline-code">X-API-Key</code> header to any request. No login or JWT required.</p>
+      </div>
+
+      <!-- Tab bar -->
+      <div class="docs-tabs">
+        <button v-for="tab in (['curl', 'js', 'php', 'python'] as const)" :key="tab"
+          class="docs-tab" :class="{ 'docs-tab--active': activeTab === tab }"
+          @click="activeTab = tab"
+        >
+          <span v-if="tab === 'curl'">cURL</span>
+          <span v-else-if="tab === 'js'">JavaScript</span>
+          <span v-else-if="tab === 'php'">PHP</span>
+          <span v-else>Python</span>
+        </button>
+        <button class="docs-copy-btn" @click="copyDoc" :class="{ 'docs-copy-btn--copied': docCopied }">
+          <svg v-if="docCopied" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          <svg v-else width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+          {{ docCopied ? 'Copied!' : 'Copy' }}
+        </button>
+      </div>
+
+      <!-- Code block -->
+      <div class="docs-code-wrap">
+        <pre class="docs-code"><code>{{ codeSnippets[activeTab] }}</code></pre>
+      </div>
+
+      <!-- Endpoint reference -->
+      <div class="docs-endpoints">
+        <p class="docs-endpoints-title">Available Endpoints</p>
+        <div class="endpoint-list">
+          <div class="endpoint-row">
+            <span class="method-badge method-post">POST</span>
+            <code class="endpoint-path">/api/send-message</code>
+            <span class="endpoint-desc">Send a plain text message</span>
+          </div>
+          <div class="endpoint-row">
+            <span class="method-badge method-post">POST</span>
+            <code class="endpoint-path">/api/send-media</code>
+            <span class="endpoint-desc">Send image, video, audio, or document</span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- ── Loading ── -->
@@ -558,5 +720,154 @@ function fmtDate(d: string | null) {
   padding: 9px 12px;
   border-radius: var(--radius-sm);
   font-size: 12px;
+}
+/* ── Documentation Section ── */
+.docs-section {
+  background: var(--clr-card);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.docs-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--clr-border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.docs-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--clr-text-muted);
+}
+.docs-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--clr-text);
+}
+.docs-desc {
+  font-size: 12px;
+  color: var(--clr-text-muted);
+}
+
+/* Tab bar */
+.docs-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: var(--clr-surface);
+  border-bottom: 1px solid var(--clr-border);
+  padding: 0 16px;
+  overflow-x: auto;
+}
+.docs-tab {
+  padding: 10px 16px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--clr-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--transition), border-color var(--transition);
+  margin-bottom: -1px;
+}
+.docs-tab:hover { color: var(--clr-text); }
+.docs-tab--active {
+  color: var(--clr-accent);
+  border-bottom-color: var(--clr-accent);
+}
+
+.docs-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--clr-border);
+  background: transparent;
+  color: var(--clr-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition);
+}
+.docs-copy-btn:hover { border-color: var(--clr-border-hover); color: var(--clr-text); }
+.docs-copy-btn--copied {
+  color: var(--clr-accent);
+  border-color: rgba(37,211,102,0.3);
+  background: var(--clr-accent-dim);
+}
+
+/* Code block */
+.docs-code-wrap {
+  background: #0d1117;
+  overflow-x: auto;
+  padding: 20px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+.docs-code {
+  margin: 0;
+  font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: #c9d1d9;
+  white-space: pre;
+}
+
+/* Endpoint reference */
+.docs-endpoints {
+  padding: 14px 20px;
+  border-top: 1px solid var(--clr-border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.docs-endpoints-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--clr-text-muted);
+}
+.endpoint-list { display: flex; flex-direction: column; gap: 8px; }
+.endpoint-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.method-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+.method-post {
+  background: rgba(59,130,246,0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59,130,246,0.25);
+}
+.endpoint-path {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--clr-accent);
+  background: var(--clr-accent-dim);
+  padding: 1px 8px;
+  border-radius: 4px;
+}
+.endpoint-desc {
+  font-size: 12px;
+  color: var(--clr-text-muted);
 }
 </style>
