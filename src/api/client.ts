@@ -124,3 +124,64 @@ export const authSettingsApi = {
     request<{ ok: boolean }>('PUT', '/api/auth/password', { password }),
 }
 
+// ── API Keys ─────────────────────────────────────────────────────────────────
+
+export interface ApiKey {
+  id: string
+  name: string
+  key: string
+  enabled: boolean
+  created_at: string
+  last_used_at: string | null
+}
+
+export const apiKeysApi = {
+  list: () => request<ApiKey[]>('GET', '/api/api-keys'),
+  create: (name: string) => request<ApiKey>('POST', '/api/api-keys', { name }),
+  update: (id: string, data: { enabled?: boolean; name?: string }) =>
+    request<ApiKey>('PUT', `/api/api-keys/${id}`, data),
+  delete: (id: string) => request<{ ok: boolean }>('DELETE', `/api/api-keys/${id}`),
+}
+
+// ── Scheduled Messages ────────────────────────────────────────────────────────
+
+export interface ScheduledMessage {
+  id: string
+  device_id: string
+  to: string
+  message: string
+  media_url: string | null
+  media_type: string | null
+  scheduled_at: string
+  repeat: 'daily' | 'weekly' | 'monthly' | null
+  status: 'pending' | 'sent' | 'failed'
+  last_sent_at: string | null
+  created_at: string
+}
+
+export const scheduledApi = {
+  list: (status?: string) =>
+    request<ScheduledMessage[]>('GET', `/api/scheduled${status ? `?status=${status}` : ''}`),
+  create: (data: {
+    deviceId: string
+    to: string
+    message: string
+    mediaUrl?: string
+    mediaType?: string
+    scheduledAt: string
+    repeat?: 'daily' | 'weekly' | 'monthly' | null
+  }) => request<ScheduledMessage>('POST', '/api/scheduled', data),
+  update: (id: string, data: {
+    deviceId?: string
+    to?: string
+    message?: string
+    mediaUrl?: string
+    mediaType?: string
+    scheduledAt?: string
+    repeat?: 'daily' | 'weekly' | 'monthly' | null
+    status?: 'pending' | 'sent' | 'failed'
+  }) => request<ScheduledMessage>('PUT', `/api/scheduled/${id}`, data),
+  delete: (id: string) => request<{ ok: boolean }>('DELETE', `/api/scheduled/${id}`),
+}
+
+

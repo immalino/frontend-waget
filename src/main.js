@@ -10,6 +10,8 @@ import DashboardView from './views/DashboardView.vue'
 import AutoReplyView from './views/AutoReplyView.vue'
 import BlastView     from './views/BlastView.vue'
 import SettingsView  from './views/SettingsView.vue'
+import ScheduledView from './views/ScheduledView.vue'
+import ApiKeysView   from './views/ApiKeysView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -18,6 +20,8 @@ const router = createRouter({
     { path: '/',            component: DashboardView, meta: { title: 'Dashboard' } },
     { path: '/auto-reply',  component: AutoReplyView, meta: { title: 'Auto-Reply' } },
     { path: '/blast',       component: BlastView,     meta: { title: 'Mass Blast' } },
+    { path: '/scheduled',   component: ScheduledView, meta: { title: 'Scheduled'  } },
+    { path: '/api-keys',    component: ApiKeysView,   meta: { title: 'API Keys'    } },
     { path: '/settings',    component: SettingsView,  meta: { title: 'Settings'   } },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],

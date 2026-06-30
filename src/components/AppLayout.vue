@@ -11,7 +11,9 @@ const navItems = [
   { path: '/',            label: 'Dashboard',   icon: 'grid' },
   { path: '/auto-reply',  label: 'Auto-Reply',  icon: 'reply' },
   { path: '/blast',       label: 'Mass Blast',  icon: 'zap' },
-  { path: '/settings',   label: 'Settings',    icon: 'settings' },
+  { path: '/scheduled',   label: 'Scheduled',   icon: 'clock' },
+  { path: '/api-keys',    label: 'API Keys',    icon: 'key' },
+  { path: '/settings',    label: 'Settings',    icon: 'settings' },
 ]
 
 function closeSidebar() { sidebarOpen.value = false }
@@ -70,6 +72,15 @@ function handleLogout() {
           <!-- Zap icon -->
           <svg v-else-if="item.icon === 'zap'" class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+          <!-- Clock icon -->
+          <svg v-else-if="item.icon === 'clock'" class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+          <!-- Key icon -->
+          <svg v-else-if="item.icon === 'key'" class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.778-7.778zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
           </svg>
           <!-- Settings icon -->
           <svg v-else-if="item.icon === 'settings'" class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
