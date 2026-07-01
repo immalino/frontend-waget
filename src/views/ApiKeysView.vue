@@ -93,6 +93,14 @@ function fmtDate(d: string | null) {
 // ── Docs ─────────────────────────────────────────────────────────────────────
 const activeTab = ref<'curl' | 'js' | 'php' | 'python'>('curl')
 const docCopied = ref(false)
+const showDocsModal = ref(false)
+
+function openDocs() {
+  showDocsModal.value = true
+}
+function closeDocsModal() {
+  showDocsModal.value = false
+}
 
 const apiBase = () =>
   localStorage.getItem('wa_api_url') || import.meta.env.VITE_API_URL || 'https://your-api.example.com'
@@ -228,71 +236,24 @@ function copyDoc() {
           <p class="page-subtitle">Allow external apps to send messages without login</p>
         </div>
       </div>
-      <button class="btn btn-primary" @click="openCreate" id="btn-create-key">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-        Generate Key
-      </button>
-    </div>
-
-    <!-- ── Documentation ── -->
-    <div class="docs-section">
-      <div class="docs-header">
-        <div class="docs-title-row">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button class="btn btn-ghost" @click="openDocs" id="btn-view-docs">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
             <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
           </svg>
-          <span class="docs-title">Integration Guide</span>
-        </div>
-        <p class="docs-desc">Add the <code class="inline-code">X-API-Key</code> header to any request. No login or JWT required.</p>
-      </div>
-
-      <!-- Tab bar -->
-      <div class="docs-tabs">
-        <button v-for="tab in (['curl', 'js', 'php', 'python'] as const)" :key="tab"
-          class="docs-tab" :class="{ 'docs-tab--active': activeTab === tab }"
-          @click="activeTab = tab"
-        >
-          <span v-if="tab === 'curl'">cURL</span>
-          <span v-else-if="tab === 'js'">JavaScript</span>
-          <span v-else-if="tab === 'php'">PHP</span>
-          <span v-else>Python</span>
+          API Docs
         </button>
-        <button class="docs-copy-btn" @click="copyDoc" :class="{ 'docs-copy-btn--copied': docCopied }">
-          <svg v-if="docCopied" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
-            <polyline points="20 6 9 17 4 12"/>
+        <button class="btn btn-primary" @click="openCreate" id="btn-create-key">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
-          <svg v-else width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-          </svg>
-          {{ docCopied ? 'Copied!' : 'Copy' }}
+          Generate Key
         </button>
-      </div>
-
-      <!-- Code block -->
-      <div class="docs-code-wrap">
-        <pre class="docs-code"><code>{{ codeSnippets[activeTab] }}</code></pre>
-      </div>
-
-      <!-- Endpoint reference -->
-      <div class="docs-endpoints">
-        <p class="docs-endpoints-title">Available Endpoints</p>
-        <div class="endpoint-list">
-          <div class="endpoint-row">
-            <span class="method-badge method-post">POST</span>
-            <code class="endpoint-path">/api/send-message</code>
-            <span class="endpoint-desc">Send a plain text message</span>
-          </div>
-          <div class="endpoint-row">
-            <span class="method-badge method-post">POST</span>
-            <code class="endpoint-path">/api/send-media</code>
-            <span class="endpoint-desc">Send image, video, audio, or document</span>
-          </div>
-        </div>
       </div>
     </div>
+
+
 
     <!-- ── Loading ── -->
     <div v-if="loading" class="card loading-card">
@@ -475,6 +436,76 @@ function copyDoc() {
                 <svg v-if="saving" class="animate-spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83"/></svg>
                 {{ saving ? 'Generating…' : 'Generate Key' }}
               </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- ── Docs Modal ── -->
+    <Teleport to="body">
+      <div v-if="showDocsModal" class="modal-overlay animate-fadeIn" @click.self="closeDocsModal">
+        <div class="modal modal--docs">
+          <button class="modal-close" @click="closeDocsModal" style="z-index: 10;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+          
+          <div class="docs-section">
+            <div class="docs-header">
+              <div class="docs-title-row" style="padding-right: 24px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+                </svg>
+                <span class="docs-title">Integration Guide</span>
+              </div>
+              <p class="docs-desc" style="padding-right: 24px;">Add the <code class="inline-code">X-API-Key</code> header to any request. No login or JWT required.</p>
+            </div>
+
+            <!-- Tab bar -->
+            <div class="docs-tabs">
+              <button v-for="tab in (['curl', 'js', 'php', 'python'] as const)" :key="tab"
+                class="docs-tab" :class="{ 'docs-tab--active': activeTab === tab }"
+                @click="activeTab = tab"
+              >
+                <span v-if="tab === 'curl'">cURL</span>
+                <span v-else-if="tab === 'js'">JavaScript</span>
+                <span v-else-if="tab === 'php'">PHP</span>
+                <span v-else>Python</span>
+              </button>
+              <button class="docs-copy-btn" @click="copyDoc" :class="{ 'docs-copy-btn--copied': docCopied }">
+                <svg v-if="docCopied" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <svg v-else width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+                {{ docCopied ? 'Copied!' : 'Copy' }}
+              </button>
+            </div>
+
+            <!-- Code block -->
+            <div class="docs-code-wrap">
+              <pre class="docs-code"><code>{{ codeSnippets[activeTab] }}</code></pre>
+            </div>
+
+            <!-- Endpoint reference -->
+            <div class="docs-endpoints">
+              <p class="docs-endpoints-title">Available Endpoints</p>
+              <div class="endpoint-list">
+                <div class="endpoint-row">
+                  <span class="method-badge method-post">POST</span>
+                  <code class="endpoint-path">/api/send-message</code>
+                  <span class="endpoint-desc">Send a plain text message</span>
+                </div>
+                <div class="endpoint-row">
+                  <span class="method-badge method-post">POST</span>
+                  <code class="endpoint-path">/api/send-media</code>
+                  <span class="endpoint-desc">Send image, video, audio, or document</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -869,5 +900,17 @@ function copyDoc() {
 .endpoint-desc {
   font-size: 12px;
   color: var(--clr-text-muted);
+}
+
+/* ── Docs Modal Styles ── */
+.modal--docs {
+  max-width: 720px;
+  padding: 0;
+  overflow: hidden;
+}
+.modal--docs .docs-section {
+  border: none;
+  background: transparent;
+  border-radius: 0;
 }
 </style>
