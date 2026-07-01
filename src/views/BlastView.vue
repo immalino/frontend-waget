@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { devicesApi, blastApi, type Device } from '../api/client'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { devicesApi, blastApi, uploadApi, type Device } from '../api/client'
 
 // ── Devices (for sender selector) ─────────────────────────────────────────
 const devices      = ref<Device[]>([])
@@ -17,6 +17,47 @@ const message  = ref('')
 const delay    = ref(7)
 const mediaUrl = ref('')
 const mediaType = ref('')
+
+const isUploading = ref(false)
+const uploadedFileName = ref('')
+
+async function onFileChange(event: Event) {
+  const target = event.target as HTMLInputElement
+  if (!target.files?.length) return
+
+  const file = target.files[0]
+  isUploading.value = true
+  uploadedFileName.value = file.name
+
+  try {
+    const res = await uploadApi.upload(file)
+    mediaUrl.value = res.url
+    uploadedFileName.value = file.name
+    
+    // Auto-detect media type
+    if (res.mimeType.startsWith('image/')) {
+      mediaType.value = 'image'
+    } else if (res.mimeType.startsWith('video/')) {
+      mediaType.value = 'video'
+    } else if (res.mimeType.startsWith('audio/')) {
+      mediaType.value = 'audio'
+    } else {
+      mediaType.value = 'document'
+    }
+  } catch (e) {
+    alert('Failed to upload file: ' + (e as Error).message)
+    uploadedFileName.value = ''
+  } finally {
+    isUploading.value = false
+    target.value = ''
+  }
+}
+
+watch(mediaUrl, (newVal) => {
+  if (!newVal) {
+    uploadedFileName.value = ''
+  }
+})
 
 const connectedDevices = computed(() => devices.value.filter(d => d.status === 'connected'))
 
@@ -188,7 +229,20 @@ const progressPct = computed(() =>
             <label class="form-label" for="blast-media">Media URL <span class="form-optional">(optional)</span></label>
             <div class="url-input-wrap">
               <svg class="url-input-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-              <input id="blast-media" v-model="mediaUrl" class="input url-input" placeholder="https://example.com/image.jpg" :disabled="blastStatus?.status === 'running'" />
+              <input id="blast-media" v-model="mediaUrl" class="input url-input" placeholder="https://example.com/image.jpg" :disabled="blastStatus?.status === 'running' || isUploading" />
+            </div>
+            <!-- File Upload Input -->
+            <div style="margin-top: 6px; display: flex; align-items: center; gap: 8px;">
+              <label class="btn btn-ghost btn-sm" style="cursor: pointer; margin: 0; padding: 4px 10px; font-size: 11px;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 4px; display: inline-block; vertical-align: middle;">
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                </svg>
+                <span style="display: inline-block; vertical-align: middle;">{{ isUploading ? 'Uploading...' : 'Upload File' }}</span>
+                <input type="file" @change="onFileChange" style="display: none;" :disabled="isUploading || blastStatus?.status === 'running'" />
+              </label>
+              <span v-if="uploadedFileName" style="font-size: 11px; color: var(--clr-text-muted); text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 180px;">
+                {{ uploadedFileName }}
+              </span>
             </div>
           </div>
           <div class="form-group">

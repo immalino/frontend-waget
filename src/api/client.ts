@@ -204,4 +204,31 @@ export const scheduledApi = {
   delete: (id: string) => request<{ ok: boolean }>('DELETE', `/api/scheduled/${id}`),
 }
 
+// ── Upload ────────────────────────────────────────────────────────────────────
+
+export const uploadApi = {
+  upload: async (file: File): Promise<{ ok: boolean; url: string; fileName: string; mimeType: string }> => {
+    const token = getToken()
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const headers: Record<string, string> = {}
+    if (token) headers['Authorization'] = `Bearer ${token}`
+
+    const res = await fetch(`${getBase()}/api/upload`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    })
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }))
+      throw new Error((err as { error?: string }).error || `HTTP ${res.status}`)
+    }
+
+    return res.json()
+  }
+}
+
+
 

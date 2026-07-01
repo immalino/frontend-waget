@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, reactive } from 'vue'
-import { autoReplyApi, type AutoReplyRule } from '../api/client'
+import { ref, computed, onMounted, reactive, watch } from 'vue'
+import { autoReplyApi, uploadApi, type AutoReplyRule } from '../api/client'
 
 // ── State ──────────────────────────────────────────────────────────────────
 const rules   = ref<AutoReplyRule[]>([])
@@ -39,6 +39,47 @@ const form = reactive({
   keyword: '', response: '', sender_id: 'All', enabled: true, mediaUrl: '', mediaType: ''
 })
 
+const isUploading = ref(false)
+const uploadedFileName = ref('')
+
+async function onFileChange(event: Event) {
+  const target = event.target as HTMLInputElement
+  if (!target.files?.length) return
+
+  const file = target.files[0]
+  isUploading.value = true
+  uploadedFileName.value = file.name
+
+  try {
+    const res = await uploadApi.upload(file)
+    form.mediaUrl = res.url
+    uploadedFileName.value = file.name
+    
+    // Auto-detect media type
+    if (res.mimeType.startsWith('image/')) {
+      form.mediaType = 'image'
+    } else if (res.mimeType.startsWith('video/')) {
+      form.mediaType = 'video'
+    } else if (res.mimeType.startsWith('audio/')) {
+      form.mediaType = 'audio'
+    } else {
+      form.mediaType = 'document'
+    }
+  } catch (e) {
+    alert('Failed to upload file: ' + (e as Error).message)
+    uploadedFileName.value = ''
+  } finally {
+    isUploading.value = false
+    target.value = ''
+  }
+}
+
+watch(() => form.mediaUrl, (newVal) => {
+  if (!newVal) {
+    uploadedFileName.value = ''
+  }
+})
+
 const devices = ['All'] // TODO: populate from devicesApi.list() if needed
 
 function openCreate() {
@@ -49,6 +90,7 @@ function openCreate() {
   form.enabled          = true
   form.mediaUrl         = ''
   form.mediaType        = ''
+  uploadedFileName.value = ''
   saveErr.value         = ''
   showModal.value       = true
 }
@@ -61,6 +103,7 @@ function openEdit(rule: AutoReplyRule) {
   form.enabled      = rule.enabled
   form.mediaUrl     = rule.media_url ?? ''
   form.mediaType    = rule.media_type ?? ''
+  uploadedFileName.value = rule.media_url ? rule.media_url.split('/').pop() || 'Uploaded file' : ''
   saveErr.value     = ''
   showModal.value   = true
 }
@@ -255,7 +298,20 @@ async function toggleRule(rule: AutoReplyRule) {
                 <label class="form-label" for="rule-media">Media URL <span class="form-optional">(optional)</span></label>
                 <div class="url-input-wrap">
                   <svg class="url-input-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                  <input id="rule-media" v-model="form.mediaUrl" class="input url-input" placeholder="https://example.com/image.jpg" />
+                  <input id="rule-media" v-model="form.mediaUrl" class="input url-input" placeholder="https://example.com/image.jpg" :disabled="isUploading" />
+                </div>
+                <!-- File Upload Input -->
+                <div style="margin-top: 6px; display: flex; align-items: center; gap: 8px;">
+                  <label class="btn btn-ghost btn-sm" style="cursor: pointer; margin: 0; padding: 4px 10px; font-size: 11px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 4px; display: inline-block; vertical-align: middle;">
+                      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                    </svg>
+                    <span style="display: inline-block; vertical-align: middle;">{{ isUploading ? 'Uploading...' : 'Upload File' }}</span>
+                    <input type="file" @change="onFileChange" style="display: none;" :disabled="isUploading" />
+                  </label>
+                  <span v-if="uploadedFileName" style="font-size: 11px; color: var(--clr-text-muted); text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 180px;">
+                    {{ uploadedFileName }}
+                  </span>
                 </div>
               </div>
               <div class="form-group">

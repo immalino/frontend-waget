@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, reactive, computed } from 'vue'
-import { scheduledApi, devicesApi, type ScheduledMessage, type Device } from '../api/client'
+import { ref, onMounted, reactive, computed, watch } from 'vue'
+import { scheduledApi, devicesApi, uploadApi, type ScheduledMessage, type Device } from '../api/client'
 
 const messages = ref<ScheduledMessage[]>([])
 const devices  = ref<Device[]>([])
@@ -51,6 +51,47 @@ const form = reactive({
   repeat:     null as 'daily' | 'weekly' | 'monthly' | null,
 })
 
+const isUploading = ref(false)
+const uploadedFileName = ref('')
+
+async function onFileChange(event: Event) {
+  const target = event.target as HTMLInputElement
+  if (!target.files?.length) return
+
+  const file = target.files[0]
+  isUploading.value = true
+  uploadedFileName.value = file.name
+
+  try {
+    const res = await uploadApi.upload(file)
+    form.mediaUrl = res.url
+    uploadedFileName.value = file.name
+    
+    // Auto-detect media type
+    if (res.mimeType.startsWith('image/')) {
+      form.mediaType = 'image'
+    } else if (res.mimeType.startsWith('video/')) {
+      form.mediaType = 'video'
+    } else if (res.mimeType.startsWith('audio/')) {
+      form.mediaType = 'audio'
+    } else {
+      form.mediaType = 'document'
+    }
+  } catch (e) {
+    alert('Failed to upload file: ' + (e as Error).message)
+    uploadedFileName.value = ''
+  } finally {
+    isUploading.value = false
+    target.value = ''
+  }
+}
+
+watch(() => form.mediaUrl, (newVal) => {
+  if (!newVal) {
+    uploadedFileName.value = ''
+  }
+})
+
 function toLocalInput(isoStr: string): string {
   const d = new Date(isoStr)
   const offset = d.getTimezoneOffset()
@@ -69,6 +110,7 @@ function openCreate() {
   form.mediaType      = ''
   form.scheduledAt    = defaultScheduledAt()
   form.repeat         = null
+  uploadedFileName.value = ''
   saveErr.value       = ''
   showModal.value     = true
 }
@@ -81,6 +123,7 @@ function openEdit(m: ScheduledMessage) {
   form.mediaType      = m.media_type ?? ''
   form.scheduledAt    = toLocalInput(m.scheduled_at)
   form.repeat         = m.repeat
+  uploadedFileName.value = m.media_url ? m.media_url.split('/').pop() || 'Uploaded file' : ''
   saveErr.value       = ''
   showModal.value     = true
 }
@@ -351,7 +394,20 @@ function statusIcon(s: string) {
                 <label class="form-label" for="sched-media">Media URL <span class="form-optional">(optional)</span></label>
                 <div class="url-input-wrap">
                   <svg class="url-input-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                  <input id="sched-media" v-model="form.mediaUrl" class="input url-input" placeholder="https://example.com/image.jpg" />
+                  <input id="sched-media" v-model="form.mediaUrl" class="input url-input" placeholder="https://example.com/image.jpg" :disabled="isUploading" />
+                </div>
+                <!-- File Upload Input -->
+                <div style="margin-top: 6px; display: flex; align-items: center; gap: 8px;">
+                  <label class="btn btn-ghost btn-sm" style="cursor: pointer; margin: 0; padding: 4px 10px; font-size: 11px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 4px; display: inline-block; vertical-align: middle;">
+                      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                    </svg>
+                    <span style="display: inline-block; vertical-align: middle;">{{ isUploading ? 'Uploading...' : 'Upload File' }}</span>
+                    <input type="file" @change="onFileChange" style="display: none;" :disabled="isUploading" />
+                  </label>
+                  <span v-if="uploadedFileName" style="font-size: 11px; color: var(--clr-text-muted); text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 180px;">
+                    {{ uploadedFileName }}
+                  </span>
                 </div>
               </div>
               <div class="form-group">
