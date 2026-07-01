@@ -559,15 +559,7 @@ function copyDoc() {
   font-size: 11px;
 }
 
-/* ── Loading ── */
-.loading-card {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 40px;
-  color: var(--clr-text-muted);
-}
+
 
 /* ── Keys list ── */
 .keys-list { display: flex; flex-direction: column; gap: 12px; }

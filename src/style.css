@@ -253,3 +253,14 @@ h3 { font-size: 1rem; font-weight: 600; }
   .hide-mobile { display: none !important; }
   .modal { padding: 20px; }
 }
+
+/* ─── Loading Card ─────────────────────────────── */
+.loading-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px;
+  color: var(--clr-text-muted);
+}
+

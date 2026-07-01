@@ -470,15 +470,7 @@ function statusIcon(s: string) {
 .page-title   { font-size: 1.1rem; font-weight: 700; margin: 0; }
 .page-subtitle { font-size: 12px; color: var(--clr-text-muted); margin: 0; }
 
-/* ── Loading ── */
-.loading-card {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 40px;
-  color: var(--clr-text-muted);
-}
+
 
 /* ── Stat Tabs ── */
 .stat-tabs {
