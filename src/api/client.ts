@@ -72,14 +72,34 @@ export interface AutoReplyRule {
   response: string
   sender_id: string
   enabled: boolean
+  media_url: string | null
+  media_type: string | null
   created_at: string
+}
+
+export interface CreateAutoReplyRuleInput {
+  keyword: string
+  response: string
+  sender_id?: string
+  enabled?: boolean
+  mediaUrl?: string | null
+  mediaType?: string | null
+}
+
+export interface UpdateAutoReplyRuleInput {
+  keyword?: string
+  response?: string
+  sender_id?: string
+  enabled?: boolean
+  mediaUrl?: string | null
+  mediaType?: string | null
 }
 
 export const autoReplyApi = {
   list:   ()          => request<AutoReplyRule[]>('GET', '/api/auto-reply'),
-  create: (data: Omit<AutoReplyRule, 'id' | 'created_at'>) =>
+  create: (data: CreateAutoReplyRuleInput) =>
     request<AutoReplyRule>('POST', '/api/auto-reply', data),
-  update: (id: number, data: Partial<Omit<AutoReplyRule, 'id' | 'created_at'>>) =>
+  update: (id: number, data: UpdateAutoReplyRuleInput) =>
     request<AutoReplyRule>('PUT', `/api/auto-reply/${id}`, data),
   delete: (id: number) => request<{ ok: boolean }>('DELETE', `/api/auto-reply/${id}`),
 }
@@ -96,8 +116,8 @@ export interface BlastStatus {
 }
 
 export const blastApi = {
-  start: (deviceId: string, numbers: string[], message: string, delay: number) =>
-    request<{ ok: boolean; blastId: string }>('POST', '/api/blast', { deviceId, numbers, message, delay }),
+  start: (deviceId: string, numbers: string[], message: string, delay: number, mediaUrl?: string, mediaType?: string) =>
+    request<{ ok: boolean; blastId: string }>('POST', '/api/blast', { deviceId, numbers, message, delay, mediaUrl, mediaType }),
   status: (blastId: string) => request<BlastStatus>('GET', `/api/blast/${blastId}/status`),
   stop:   (blastId: string) => request<{ ok: boolean }>('DELETE', `/api/blast/${blastId}`),
 }

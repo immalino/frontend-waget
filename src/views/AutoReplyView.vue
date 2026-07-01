@@ -36,7 +36,7 @@ const saving     = ref(false)
 const saveErr    = ref('')
 
 const form = reactive({
-  keyword: '', response: '', sender_id: 'All', enabled: true
+  keyword: '', response: '', sender_id: 'All', enabled: true, mediaUrl: '', mediaType: ''
 })
 
 const devices = ['All'] // TODO: populate from devicesApi.list() if needed
@@ -47,6 +47,8 @@ function openCreate() {
   form.response         = ''
   form.sender_id        = 'All'
   form.enabled          = true
+  form.mediaUrl         = ''
+  form.mediaType        = ''
   saveErr.value         = ''
   showModal.value       = true
 }
@@ -57,6 +59,8 @@ function openEdit(rule: AutoReplyRule) {
   form.response     = rule.response
   form.sender_id    = rule.sender_id
   form.enabled      = rule.enabled
+  form.mediaUrl     = rule.media_url ?? ''
+  form.mediaType    = rule.media_type ?? ''
   saveErr.value     = ''
   showModal.value   = true
 }
@@ -71,22 +75,20 @@ async function saveRule() {
   if (!form.keyword.trim() || !form.response.trim()) return
   saving.value = true
   try {
+    const payload = {
+      keyword:   form.keyword,
+      response:  form.response,
+      sender_id: form.sender_id,
+      enabled:   form.enabled,
+      mediaUrl:  form.mediaUrl.trim() || null,
+      mediaType: form.mediaUrl.trim() ? (form.mediaType || null) : null,
+    }
     if (editTarget.value) {
-      const updated = await autoReplyApi.update(editTarget.value.id, {
-        keyword:   form.keyword,
-        response:  form.response,
-        sender_id: form.sender_id,
-        enabled:   form.enabled,
-      })
+      const updated = await autoReplyApi.update(editTarget.value.id, payload)
       const idx = rules.value.findIndex(r => r.id === editTarget.value!.id)
       if (idx !== -1) rules.value[idx] = updated
     } else {
-      const created = await autoReplyApi.create({
-        keyword:   form.keyword,
-        response:  form.response,
-        sender_id: form.sender_id,
-        enabled:   form.enabled,
-      })
+      const created = await autoReplyApi.create(payload)
       rules.value.push(created)
     }
     closeModal()
@@ -248,6 +250,25 @@ async function toggleRule(rule: AutoReplyRule) {
               <label class="form-label" for="rule-response">Response text</label>
               <textarea id="rule-response" v-model="form.response" class="textarea" rows="4" placeholder="Enter the auto-reply message…"></textarea>
             </div>
+            <div class="two-col">
+              <div class="form-group">
+                <label class="form-label" for="rule-media">Media URL <span class="form-optional">(optional)</span></label>
+                <div class="url-input-wrap">
+                  <svg class="url-input-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                  <input id="rule-media" v-model="form.mediaUrl" class="input url-input" placeholder="https://example.com/image.jpg" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="rule-media-type">Media Type</label>
+                <select id="rule-media-type" v-model="form.mediaType" class="input" :disabled="!form.mediaUrl">
+                  <option value="">Auto (Detect)</option>
+                  <option value="image">Image (Gambar)</option>
+                  <option value="video">Video</option>
+                  <option value="audio">Audio</option>
+                  <option value="document">Document (Dokumen)</option>
+                </select>
+              </div>
+            </div>
             <div class="form-group">
               <label class="form-label" for="rule-sender">Apply to number</label>
               <select id="rule-sender" v-model="form.sender_id" class="input">
@@ -303,9 +324,23 @@ async function toggleRule(rule: AutoReplyRule) {
 .rule-card { display: flex; flex-direction: column; gap: 10px; }
 .rule-card-top { display: flex; align-items: center; justify-content: space-between; }
 .rule-response { font-size: 12px; color: var(--clr-text-muted); }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.url-input-wrap { position: relative; }
+.url-input-icon {
+  position: absolute;
+  left: 12px; top: 50%; transform: translateY(-50%);
+  color: var(--clr-text-dim);
+  pointer-events: none;
+}
+.url-input { padding-left: 34px; }
+.form-optional { color: var(--clr-text-dim); font-weight: 400; font-size: 11px; }
+
 @media (max-width: 768px) {
   .hide-mobile-block { display: none !important; }
   .rule-cards { display: flex !important; }
   .search-wrap { max-width: 100%; }
+}
+@media (max-width: 640px) {
+  .two-col { grid-template-columns: 1fr; }
 }
 </style>

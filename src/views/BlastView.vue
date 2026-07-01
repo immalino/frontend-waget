@@ -15,6 +15,8 @@ const senderId = ref('')
 const numbers  = ref('')
 const message  = ref('')
 const delay    = ref(7)
+const mediaUrl = ref('')
+const mediaType = ref('')
 
 const connectedDevices = computed(() => devices.value.filter(d => d.status === 'connected'))
 
@@ -58,7 +60,9 @@ async function startBlast() {
       selectedDevice.value.id,
       parsedNumbers.value,
       message.value,
-      delay.value
+      delay.value,
+      mediaUrl.value.trim() || undefined,
+      mediaUrl.value.trim() ? (mediaType.value || undefined) : undefined
     )
     blastId.value     = res.blastId
     blastStatus.value = { status: 'running', sent: 0, failed: 0, total: parsedNumbers.value.length }
@@ -101,6 +105,8 @@ function reset() {
   blastId.value     = null
   blastStatus.value = null
   logs.value        = []
+  mediaUrl.value    = ''
+  mediaType.value   = ''
   clearInterval(pollTimer.value!)
   pollTimer.value   = null
 }
@@ -174,6 +180,27 @@ const progressPct = computed(() =>
             :disabled="blastStatus?.status === 'running'"
           ></textarea>
           <span class="form-hint" v-if="message.length > 0">{{ message.length }} characters</span>
+        </div>
+
+        <!-- Media URL & Media Type -->
+        <div class="two-col">
+          <div class="form-group">
+            <label class="form-label" for="blast-media">Media URL <span class="form-optional">(optional)</span></label>
+            <div class="url-input-wrap">
+              <svg class="url-input-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+              <input id="blast-media" v-model="mediaUrl" class="input url-input" placeholder="https://example.com/image.jpg" :disabled="blastStatus?.status === 'running'" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="blast-media-type">Media Type</label>
+            <select id="blast-media-type" v-model="mediaType" class="input" :disabled="!mediaUrl || blastStatus?.status === 'running'">
+              <option value="">Auto (Detect)</option>
+              <option value="image">Image (Gambar)</option>
+              <option value="video">Video</option>
+              <option value="audio">Audio</option>
+              <option value="document">Document (Dokumen)</option>
+            </select>
+          </div>
         </div>
 
         <!-- Delay slider -->
@@ -297,5 +324,21 @@ const progressPct = computed(() =>
 .prog-stat-val.fail { color: var(--clr-danger); }
 .blast-id-chip { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--clr-text-muted); padding: 8px 12px; background: var(--clr-surface); border-radius: var(--radius-sm); border: 1px solid var(--clr-border); }
 .blast-id-chip code { color: var(--clr-text); font-size: 11px; }
-@media (max-width: 960px) { .blast-layout { grid-template-columns: 1fr; } }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.url-input-wrap { position: relative; }
+.url-input-icon {
+  position: absolute;
+  left: 12px; top: 50%; transform: translateY(-50%);
+  color: var(--clr-text-dim);
+  pointer-events: none;
+}
+.url-input { padding-left: 34px; }
+.form-optional { color: var(--clr-text-dim); font-weight: 400; font-size: 11px; }
+
+@media (max-width: 960px) {
+  .blast-layout { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .two-col { grid-template-columns: 1fr; }
+}
 </style>

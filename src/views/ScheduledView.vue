@@ -46,6 +46,7 @@ const form = reactive({
   to:         '',
   message:    '',
   mediaUrl:   '',
+  mediaType:  '',
   scheduledAt: '',
   repeat:     null as 'daily' | 'weekly' | 'monthly' | null,
 })
@@ -65,6 +66,7 @@ function openCreate() {
   form.to             = ''
   form.message        = ''
   form.mediaUrl       = ''
+  form.mediaType      = ''
   form.scheduledAt    = defaultScheduledAt()
   form.repeat         = null
   saveErr.value       = ''
@@ -76,6 +78,7 @@ function openEdit(m: ScheduledMessage) {
   form.to             = m.to
   form.message        = m.message
   form.mediaUrl       = m.media_url ?? ''
+  form.mediaType      = m.media_type ?? ''
   form.scheduledAt    = toLocalInput(m.scheduled_at)
   form.repeat         = m.repeat
   saveErr.value       = ''
@@ -93,6 +96,7 @@ async function saveMsg() {
       to:         form.to.trim(),
       message:    form.message.trim(),
       mediaUrl:   form.mediaUrl.trim() || undefined,
+      mediaType:  form.mediaUrl.trim() ? (form.mediaType || undefined) : undefined,
       scheduledAt: new Date(form.scheduledAt).toISOString(),
       repeat:      form.repeat,
     }
@@ -341,14 +345,25 @@ function statusIcon(s: string) {
               </div>
             </div>
 
-            <!-- Media URL -->
-            <div class="form-group">
-              <label class="form-label" for="sched-media">Media URL <span class="form-optional">(optional)</span></label>
-              <div class="url-input-wrap">
-                <svg class="url-input-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                <input id="sched-media" v-model="form.mediaUrl" class="input url-input" placeholder="https://example.com/image.jpg" />
+            <!-- Media URL & Media Type -->
+            <div class="two-col">
+              <div class="form-group">
+                <label class="form-label" for="sched-media">Media URL <span class="form-optional">(optional)</span></label>
+                <div class="url-input-wrap">
+                  <svg class="url-input-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                  <input id="sched-media" v-model="form.mediaUrl" class="input url-input" placeholder="https://example.com/image.jpg" />
+                </div>
               </div>
-              <span class="form-hint">Public URL of an image, video, audio or document.</span>
+              <div class="form-group">
+                <label class="form-label" for="sched-media-type">Media Type</label>
+                <select id="sched-media-type" v-model="form.mediaType" class="input" :disabled="!form.mediaUrl">
+                  <option value="">Auto (Detect)</option>
+                  <option value="image">Image (Gambar)</option>
+                  <option value="video">Video</option>
+                  <option value="audio">Audio</option>
+                  <option value="document">Document (Dokumen)</option>
+                </select>
+              </div>
             </div>
 
             <!-- Message -->
@@ -507,6 +522,7 @@ function statusIcon(s: string) {
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
 }
 
